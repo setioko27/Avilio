@@ -80,7 +80,7 @@ $myTheme->addScripts([
         'handle'=>'script2-name',
         'src'=>get_template_directory_uri() . '/js/example2.js',
     ]
-])
+]);
 
 $myTheme->addStyles([
     [
@@ -88,7 +88,7 @@ $myTheme->addStyles([
         'src' => get_stylesheet_uri()
 
     ]
-])
+]);
 
 //other commonly used examples
 $myTheme->addImageSizes([
@@ -159,7 +159,7 @@ get_header();
     <section class="section2">
         <h2><?php echo get_field('section2_title') ?></h2>
         <h4><?php echo get_field('section2_subtitle') ?></h4>
-        <?php if( have_rows('slides') ): ?>
+        <?php if( have_rows('section2_slides') ): ?>
             <ul class="slides">
                 <?php while( have_rows('section2_slides') ): the_row(); 
                     $image = get_sub_field('section2_image');
@@ -182,23 +182,24 @@ With Avilio:
 ```php
 // page.php
 <?php 
-use Avilio/PageTemplate;
+use Avilio\PageTemplate;
+use Avilio\ACF;
 get_header();
 
 $template = new PageTemplate();
 $data = [
     'section1' => [
         'path' => 'content/section1',
-        'title' => $template::field('section1_title'),
-        'subtitle' => $template::field('subtitle'),
-        'image' => $template::field('image'),
-        'desc' => $template::field('desc'),
+        'title' => ACF::field('section1_title'),
+        'subtitle' => ACF::field('subtitle'),
+        'image' => ACF::field('image'),
+        'desc' => ACF::field('desc'),
     ],
     'section2' => [
         'path' => 'content/section2',
-        'title' => $template::field('section2_title'),
-        'subtitle' => $template::field('section2_subtitle'),
-        'lists' => $template::field('slides',[
+        'title' => ACF::field('section2_title'),
+        'subtitle' => ACF::field('section2_subtitle'),
+        'lists' => ACF::field('section2_slides',[
             'image' => 'section2_image',
             'caption' => 'section2_caption'
         ]),
