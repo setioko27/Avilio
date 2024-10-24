@@ -1,5 +1,6 @@
 <?php
-namespace Avilio;
+
+use Avilio\ACF;
 
 function get_menu_by_location($location, $args = [])
 {
