@@ -235,9 +235,12 @@ $data = [
         <ul class="slides">
             <?php foreach($lists as $list) ?>
                 <li>
-                    <?php echo $image ?> 
-                    // If the field image returns an ID, Avilio will automatically generate it into a URL.
-                    <p><?php echo $caption ?></p>
+                    <?php 
+                        echo $list['image'] 
+                        // If the image field returns an ID, Avilio will automatically generate it into a URL.
+                    ?> 
+                    
+                    <p><?php echo $list['caption'] ?></p>
                 </li>
             <?php endforeach; ?>
         </ul>

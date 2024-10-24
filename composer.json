@@ -1,8 +1,14 @@
 {
-    "name": "tio27/Avilio",
+    "name": "tio27/avilio",
     "description": "A WordPress helper class plugin",
-    "type": "wordpress-plugin",
-    "license": "GPL-2.0-or-later",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "avilio",
+        "themes",
+        "templating",
+        "wordpress"
+    ],
     "authors": [
         {
             "name": "Tio27",
@@ -15,7 +21,7 @@
     },
     "autoload": {
         "psr-4": {
-            "YourNamespace\\": "src/"
+            "Avilio\\": "src/"
         },
         "files": [
             "src/Helper.php"

@@ -1,11 +1,11 @@
 <?php
 /*
 Plugin Name: Avilio
-Plugin URI: https://yourwebsite.com/plugin
-Description: A brief description of your plugin
+Plugin URI: soon
+Description: A WordPress helper class plugin
 Version: 1.0.0
-Author: Your Name
-Author URI: https://yourwebsite.com
+Author: Tio27
+Author URI: https://github.com/setioko27
 License: GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 */
