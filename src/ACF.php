@@ -1,5 +1,7 @@
 <?php
 namespace Avilio;
+
+use Avilio\Sanitize;
 class ACF{
 
     public static function field_object($field_name, $parent, $is_sub)
