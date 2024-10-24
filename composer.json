@@ -1,0 +1,24 @@
+{
+    "name": "tio27/Avilio",
+    "description": "A WordPress helper class plugin",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Tio27",
+            "email": "setiokoo@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2",
+        "composer/installers": "~1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "YourNamespace\\": "src/"
+        },
+        "files": [
+            "src/Helper.php"
+        ]
+    }
+}
