@@ -3,199 +3,229 @@ namespace Avilio;
 
 class Theme
 {
+    private const DEFAULT_PRIORITY = 10;
+    private const DEFAULT_ARGS = 1;
+    private const DEFAULT_MEDIA = 'all';
+    private const DEFAULT_VERSION = '1.0.0';
+    
+    private array $defaultLogoSettings = [
+        'height' => 250,
+        'width' => 250,
+        'flex-width' => true,
+        'flex-height' => true,
+        'unlink-homepage-logo' => true,
+    ];
 
-    public function addAction($hook, $function, $priority = 10, $accepted_args = 1)
+    private array $defaultHtmlSupport = [
+        'search-form',
+        'comment-form',
+        'comment-list',
+        'gallery',
+        'caption'
+    ];
+
+    public function __construct()
     {
-        add_action($hook, function (...$args) use ($function) {
-            return call_user_func_array($function, $args);
-        }, $priority, $accepted_args);
+        $this->initializeThemeSupport()
+             ->initializeStyles();
     }
 
-    public function addFilter($hook, $function, $priority = 10, $accepted_args = 1)
+    private function initializeThemeSupport(): self
     {
-        add_filter($hook, function (...$args) use ($function) {
-            return call_user_func_array($function, $args);
-        }, $priority, $accepted_args);
+        return $this->addSupport('title-tag')
+                    ->addSupport('custom-logo', $this->defaultLogoSettings)
+                    ->addSupport('post-thumbnails')
+                    ->addSupport('html5', $this->defaultHtmlSupport);
     }
-    private function actionAfterSetup($function)
+
+    private function initializeStyles(): self
+    {
+        return $this->addStyles([
+            'handle' => "theme-style",
+            "src" => get_stylesheet_uri()
+        ]);
+    }
+
+    public function addAction(string $hook, callable $function, int $priority = self::DEFAULT_PRIORITY, int $accepted_args = self::DEFAULT_ARGS): void
+    {
+        add_action($hook, fn(...$args) => call_user_func_array($function, $args), $priority, $accepted_args);
+    }
+
+    public function addFilter(string $hook, callable $function, int $priority = self::DEFAULT_PRIORITY, int $accepted_args = self::DEFAULT_ARGS): void
+    {
+        add_filter($hook, fn(...$args) => call_user_func_array($function, $args), $priority, $accepted_args);
+    }
+
+    private function actionAfterSetup(callable $function): void
     {
         $this->addAction("after_setup_theme", $function);
     }
 
-    private function actionEnqueueScripts($function)
+    private function actionEnqueueScripts(callable $function): void
     {
         $this->addAction("wp_enqueue_scripts", $function);
     }
 
-    public function __construct()
+    public function addSupport(string $feature, ?array $options = null): self
     {
-        $this->addSupport('title-tag')
-            ->addSupport('custom-logo', [
-                'height' => 250,
-                'width' => 250,
-                'flex-width' => true,
-                'flex-height' => true,
-                'unlink-homepage-logo' => true,
-            ])
-            ->addSupport('post-thumbnails')
-            ->addSupport('html5', [
-                'search-form',
-                'comment-form',
-                'comment-list',
-                'gallery',
-                'caption'
-            ])
-            ->addStyles([
-                'handle' => "theme-style",
-                "src" => get_stylesheet_uri()
-            ]);
-
-        
-    }
-
-    public function addSupport($feature, $options = null)
-    {
-        $this->actionAfterSetup(function () use ($feature, $options) {
-            if ($options) {
-                add_theme_support($feature, $options);
-            } else {
-                add_theme_support($feature);
-            }
+        $this->actionAfterSetup(function() use ($feature, $options) {
+            add_theme_support($feature, $options ?? []);
         });
         return $this;
     }
 
-    public function removeSupport($feature)
+    public function removeSupport(string $feature): self
     {
-        $this->actionAfterSetup(function () use ($feature) {
-            remove_theme_support($feature);
-        });
+        $this->actionAfterSetup(fn() => remove_theme_support($feature));
         return $this;
     }
 
-    public function loadTextDomain($domain, $path = false)
+    public function loadTextDomain(string $domain, $path = false): self
     {
-        $this->actionAfterSetup(function () use ($domain, $path) {
-            load_theme_textdomain($domain, $path);
-        });
+        $this->actionAfterSetup(fn() => load_theme_textdomain($domain, $path));
         return $this;
     }
 
-
-
-
-    public function addImageSizes($sizes = [])
+    public function addImageSizes(array $sizes = []): self
     {
-        $this->actionAfterSetup(function () use ($sizes) {
+        $this->actionAfterSetup(function() use ($sizes) {
             foreach ($sizes as $size) {
-                $name = $size['name'] ?? '';
-                $width = $size['width'] ?? 0;
-                $height = $size['height'] ?? 0;
-                $crop = $size['crop'] ?? false;
-
-                if (!empty($name)) {
-                    add_image_size($name, $width, $height, $crop);
-                }
+                if (empty($size['name'])) continue;
+                
+                add_image_size(
+                    $size['name'],
+                    $size['width'] ?? 0,
+                    $size['height'] ?? 0,
+                    $size['crop'] ?? false
+                );
             }
         });
         return $this;
     }
 
-    public function removeImageSize($name)
+    public function removeImageSize(string $name): self
     {
-        $this->actionAfterSetup(function () use ($name) {
-            remove_image_size($name);
-        });
+        $this->actionAfterSetup(fn() => remove_image_size($name));
         return $this;
     }
 
-    public function addStyles($styles = [])
+    public function addStyles(array $styles): self
     {
-        $this->actionEnqueueScripts(function () use ($styles) {
-            foreach ($styles as $style) {
-                $handle = $style['handle'] ?? '';
-                $src = $style['src'] ?? '';
-                $deps = $style['deps'] ?? [];
-                $ver = $style['ver'] ?? false;
-                $media = $style['media'] ?? 'all';
-
-                if (!empty($handle) && !empty($src)) {
-                    wp_enqueue_style($handle, $src, $deps, $ver, $media);
-                }
+        $this->actionEnqueueScripts(function() use ($styles) {
+            if (!isset($styles['handle']) || !isset($styles['src'])) {
+                $this->processMultipleStyles($styles);
+                return;
             }
+            
+            $this->enqueueStyle($styles);
         });
         return $this;
     }
 
-    public function addAdminStyle($handle = '', $src = '', $deps = false, $ver = '1.0.0')
+    private function processMultipleStyles(array $styles): void
     {
-        $this->addAction('admin_enqueue_scripts', function () use ($handle, $src, $deps, $ver) {
-            wp_enqueue_style($handle, $src, $deps, $ver);
-        });
-        return false;
+        foreach ($styles as $style) {
+            if (!isset($style['handle']) || !isset($style['src'])) continue;
+            $this->enqueueStyle($style);
+        }
     }
 
-    public function addScripts($scripts = [])
+    private function enqueueStyle(array $style): void
     {
-        $this->actionEnqueueScripts(function () use ($scripts) {
-            foreach ($scripts as $script) {
-                $handle = $script['handle'] ?? '';
-                $src = $script['src'] ?? '';
-                $deps = $script['deps'] ?? [];
-                $ver = $script['ver'] ?? false;
-                $inFooter = $script["in_footer"] ?? true;
+        wp_enqueue_style(
+            $style['handle'],
+            $style['src'],
+            $style['deps'] ?? [],
+            $style['ver'] ?? false,
+            $style['media'] ?? self::DEFAULT_MEDIA
+        );
+    }
 
-                if (!empty($handle) && !empty($src)) {
-                    wp_enqueue_script($handle, $src, $deps, $ver, $inFooter);
-                }
+    public function addScripts(array $scripts): self
+    {
+        $this->actionEnqueueScripts(function() use ($scripts) {
+            if (!isset($scripts['handle']) || !isset($scripts['src'])) {
+                $this->processMultipleScripts($scripts);
+                return;
             }
+            
+            $this->enqueueScript($scripts);
         });
         return $this;
     }
 
-
-
-    public function removeStyle($handle)
+    private function processMultipleScripts(array $scripts): void
     {
-        $this->actionEnqueueScripts(function () use ($handle) {
-            wp_dequeue_style($handle);
-            wp_deregister_style($handle);
-        });
-        return $this;
+        foreach ($scripts as $script) {
+            if (!isset($script['handle']) || !isset($script['src'])) continue;
+            $this->enqueueScript($script);
+        }
     }
 
-    public function removeScript($handle)
+    private function enqueueScript(array $script): void
     {
-        $this->actionEnqueueScripts(function () use ($handle) {
-            wp_dequeue_script($handle);
-            wp_deregister_script($handle);
-        });
-        return $this;
+        wp_enqueue_script(
+            $script['handle'],
+            $script['src'],
+            $script['deps'] ?? [],
+            $script['ver'] ?? false,
+            $script['in_footer'] ?? true
+        );
     }
 
-    public function addNavMenus($locations = [])
+    public function addAdminAsset(string $type, string $handle, string $src, $deps = false, string $ver = self::DEFAULT_VERSION): self
     {
-        $this->actionAfterSetup(function () use ($locations) {
-            register_nav_menus($locations);
+        $this->addAction('admin_enqueue_scripts', function() use ($type, $handle, $src, $deps, $ver) {
+            $function = "wp_enqueue_$type";
+            $function($handle, $src, $deps, $ver);
         });
         return $this;
     }
 
-    public function addNavMenu($location, $description)
+    public function addAdminStyle(string $handle, string $src, $deps = false, string $ver = self::DEFAULT_VERSION): self
     {
-        $this->actionAfterSetup(function () use ($location, $description) {
-            register_nav_menu($location, $description);
-        });
-        return $this;
+        return $this->addAdminAsset('style', $handle, $src, $deps, $ver);
     }
 
-    public function removeNavMenu($location)
+    public function addAdminScript(string $handle, string $src, $deps = false, string $ver = self::DEFAULT_VERSION): self
     {
-        $this->actionAfterSetup(function () use ($location) {
-            unregister_nav_menu($location);
+        return $this->addAdminAsset('script', $handle, $src, $deps, $ver);
+    }
+
+    public function removeAsset(string $type, string $handle): self
+    {
+        $this->actionEnqueueScripts(function() use ($type, $handle) {
+            call_user_func("wp_dequeue_$type", $handle);
+            call_user_func("wp_deregister_$type", $handle);
         });
         return $this;
     }
 
-    
+    public function removeStyle(string $handle): self
+    {
+        return $this->removeAsset('style', $handle);
+    }
+
+    public function removeScript(string $handle): self
+    {
+        return $this->removeAsset('script', $handle);
+    }
+
+    public function addNavMenus(array $locations): self
+    {
+        $this->actionAfterSetup(fn() => register_nav_menus($locations));
+        return $this;
+    }
+
+    public function addNavMenu(string $location, string $description): self
+    {
+        $this->actionAfterSetup(fn() => register_nav_menu($location, $description));
+        return $this;
+    }
+
+    public function removeNavMenu(string $location): self
+    {
+        $this->actionAfterSetup(fn() => unregister_nav_menu($location));
+        return $this;
+    }
 }
